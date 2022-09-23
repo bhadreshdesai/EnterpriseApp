@@ -1,0 +1,50 @@
+version: "3.7"
+services:
+  EnterpriseAppApi:
+    build: .
+    image: EnterpriseAppApi
+    container_name: EnterpriseAppApi
+    networks:
+      - EnterpriseAppNet
+    restart: "no"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql_db:3306/EnterpriseAppDb
+      SPRING_DATASOURCE_USERNAME: EnterpriseApp
+      SPRING_DATASOURCE_PASSWORD: nE5kMc7JCGNqwDQM
+      SPRING_JPA.HIBERNATE_DDL-AUTO: update
+    ports:
+      - 8080:8080
+    depends_on:
+      - EnterpriseAppDb
+    #command: sh -c './wait-for mysql_db:3306 -- npm start'
+  EnterpriseAppDb:
+    image: "mysql:5.7"
+    container_name: EnterpriseAppDb
+    volumes:
+      - EnterpriseAppDbData:/var/lib/mysql
+    networks:
+      - EnterpriseAppNet
+    restart: "no"
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_DATABASE: EnterpriseAppDb
+      MYSQL_USER: EnterpriseApp
+      MYSQL_PASSWORD: nE5kMc7JCGNqwDQM
+      MYSQL_ROOT_PASSWORD: nE5kMc7JCGNqwDQN
+  EnterpriseAppPma:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: EnterpriseApp_phpmyadmin
+    networks:
+      - EnterpriseAppNet
+    restart: "no"
+    environment:
+      PMA_HOST: EnterpriseAppDb
+      PMA_USER: root
+      PMA_PASSWORD: nE5kMc7JCGNqwDQN
+    ports:
+      - "80:80"
+networks:
+  EnterpriseAppNet: {}
+volumes:
+  EnterpriseAppDbData: {}

@@ -1,0 +1,141 @@
+plugins {
+    id 'org.springframework.boot' version '2.5.3'
+    id 'io.spring.dependency-management' version '1.0.11.RELEASE'
+    id 'java'
+    id 'jacoco'
+    id "com.github.spacialcircumstances.gradle-cucumber-reporting" version "0.1.22"
+    id 'idea'
+}
+
+group = 'bdd.demo'
+version = '1.0.0-SNAPSHOT'
+sourceCompatibility = '11'
+
+def versions = [
+        openapi : '1.5.4',
+        cucumber: '6.9.1'
+]
+
+sourceSets {
+    testInt {
+        compileClasspath += sourceSets.main.output
+        runtimeClasspath += sourceSets.main.output
+    }
+}
+
+idea {
+    module {
+        testSourceDirs += project.sourceSets.testInt.java.srcDirs
+        testSourceDirs += project.sourceSets.testInt.resources.srcDirs
+    }
+}
+
+configurations {
+    compileOnly.extendsFrom annotationProcessor
+    testCompileOnly.extendsFrom testAnnotationProcessor
+    testIntCompileOnly.extendsFrom testIntAnnotationProcessor
+    testIntImplementation.extendsFrom implementation
+    testIntRuntimeOnly.extendsFrom runtimeOnly
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+
+    // Annotation, CompileOnly and Development only dependencies
+    annotationProcessor 'org.projectlombok:lombok'
+    //compileOnly 'org.projectlombok:lombok'
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+    // Main application dependencies
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    // https://mvnrepository.com/artifact/org.springdoc/springdoc-openapi-ui
+    implementation "org.springdoc:springdoc-openapi-ui:${versions.openapi}"
+
+    // Runtime only dependencies
+    runtimeOnly 'com.h2database:h2'
+    //runtimeOnly 'mysql:mysql-connector-java'
+
+    // Unit test dependencies
+    testAnnotationProcessor 'org.projectlombok:lombok'
+    //testCompileOnly 'org.projectlombok:lombok'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+    // Integration test dependencies
+    testIntAnnotationProcessor 'org.projectlombok:lombok'
+    testIntImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testIntImplementation "io.cucumber:cucumber-java:${versions.cucumber}"
+    testIntImplementation "io.cucumber:cucumber-junit-platform-engine:${versions.cucumber}"
+    testIntImplementation "io.cucumber:cucumber-spring:${versions.cucumber}"
+
+}
+
+task testInt(type: Test) {
+    description = 'Runs integration tests.'
+    group = 'verification'
+    outputs.upToDateWhen { false }
+    testClassesDirs = sourceSets.testInt.output.classesDirs
+    classpath = sourceSets.testInt.runtimeClasspath
+    shouldRunAfter test
+}
+
+tasks.withType(Test) {
+    useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
+    testLogging.showStandardStreams = true
+    finalizedBy jacocoTestReport // report is always generated after tests run
+}
+
+
+jacocoTestReport {
+    // https://stackoverflow.com/questions/19025138/gradle-how-to-generate-coverage-report-for-integration-test-using-jacoco
+    executionData {
+        tasks.withType(Test).findAll {
+            it.jacoco.destinationFile.exists()
+        }*.jacoco.destinationFile
+    }
+
+    reports {
+        xml.required = true
+        // HTML report: build/reports/jacoco/test/html/index.html
+        html.required = true
+    }
+}
+
+jacocoTestCoverageVerification {
+    dependsOn testInt
+    executionData {
+        tasks.withType(Test).findAll {
+            it.jacoco.destinationFile.exists()
+        }*.jacoco.destinationFile
+    }
+    violationRules {
+        rule {
+            element = 'CLASS'
+            excludes = [
+                    'bdd.demo.enterpriseapp.Application',
+                    'bdd.demo.enterpriseapp.configuration.OpenApiConfig',
+                    'bdd.*.Constants'
+            ]
+            limit {
+                counter = 'INSTRUCTION'
+                value = 'COVEREDRATIO'
+                minimum = 0.95
+            }
+        }
+    }
+}
+
+cucumberReports {
+    buildId = '0'
+    outputDir = file("${buildDir}/reports/cucumber")
+    reports = files("${buildDir}/reports/cucumber/cucumber-report.json")
+}
+
+check.dependsOn testInt, jacocoTestCoverageVerification
