@@ -8,6 +8,10 @@ group = 'bdd.demo.'
 version = '0.0.1-SNAPSHOT'
 sourceCompatibility = '11'
 
+def versions = [
+		jjwt: '0.9.1'
+]
+
 configurations {
 	compileOnly {
 		extendsFrom annotationProcessor
@@ -19,12 +23,20 @@ repositories {
 }
 
 dependencies {
-	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-	implementation 'org.springframework.boot:spring-boot-starter-web'
-	compileOnly 'org.projectlombok:lombok'
-	developmentOnly 'org.springframework.boot:spring-boot-devtools'
-	runtimeOnly 'com.h2database:h2'
 	annotationProcessor 'org.projectlombok:lombok'
+
+	compileOnly 'org.projectlombok:lombok'
+
+	developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+	implementation "io.jsonwebtoken:jjwt:$versions.jjwt"
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	implementation 'org.springframework.boot:spring-boot-starter-security'
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	
+	runtimeOnly 'com.h2database:h2'
+	
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }
 
